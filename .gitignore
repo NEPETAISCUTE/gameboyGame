@@ -4,3 +4,4 @@
 *.sym
 *.map
 *.sav
+.vscode/
