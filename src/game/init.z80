@@ -1,4 +1,6 @@
 INCLUDE "hardware.inc"
+;TODO: add that file to define the constants tied to consoleCode
+;INCLUDE "consoles.inc"
 
 SECTION "Entry", ROM0[$100]
 entry_point:
@@ -8,7 +10,170 @@ SECTION "Header", ROM0[$104]
 
     ;initializes all the bytes in here to 0
     ds $150 - @, 0
+SECTION "Global Variable", WRAM0
+
+;%00 == DMG
+;%01 == DMG
+;%10 == CGB
+;%01 == AGB
+consoleCode: ds 1
 
 SECTION "Init", ROM0
 init_game:
-    jp @
+    ;this is to disable interrupts
+    ;interrupts are special signals that tell the cpu to stop what it's doing, and call a special function called a "handler"
+    ;there's 5 different interrupt sources, and some of them are tied to the joypad or the rendering
+    ;so it's better to avoid our code branching off while we do something else
+    ;it's not a problem since di doesn't modify any cpu registers (well rather any general purpose cpu registers)
+    di
+
+    ;sorry for that huge comment surge, just felt like it was important to actually detail initial states
+    ;helped me a lot to actually find some logic to actually detect which console the game's running on
+
+    ;a: CPU type
+    ;$01 == DMG
+    ;$11 == CGB or AGB (the GBA used a GBC's CPU, that's why)
+    ;$FF == MGB (gameboy pocket, was a smaller gameboy, had a different color palette, but that's kinda it i think)
+
+    ;b: CPU qualifier 1 (if a is CGB/AGB), helps to differentiate CGB and AGB 
+    ;(note: in DMG mode, those values depend on header values for some reason)
+    ;$00 == CGB
+    ;$01 == AGB
+
+    ;c: CPU qualifier 2
+    ;$13 == DMG
+    ;$14 == SGB
+    ;$00 == CGB or AGB
+
+    ;d: color qualifier
+    ;$00 == monochrome (CGB/AGB in DMG mode, DMG, MGB or SGB
+    ;$FF == color (CGB or AGB in CGB mode)
+
+    ;e: CPU qualifier 3 (differenciates between DMG models)
+    ;$C1 == DMG0
+    ;$C8 == DMG
+    ;$00 == SGB
+    ;$08 == CGB or AGB in DMG mode
+    ;$56 == CGB or AGB
+
+    ;honestly we don't need to bother with DMG variants, nor SGB (i don't think we really care about SGB)
+    ;we just need to know if it's a console that supports color or not
+    ;actually, one useful thing, i guess, is detecting AGB, because on the GBA, colors tend to be a bit 
+    ;darker and that's kinda annoying, so it'd be cool to actually adapt the colors on the GBA
+
+    ;using bitwise and, dunno if you know about logic operations and bitwise logic operations, DM me if you don't ^^'
+    ;% is the prefix for binary numbers
+    ;here i'm just keeping the second bit of the color qualifier
+    ;the idea is, i bitwise or it with the value in CPU qualifier 1, bit 1 tells us if it's CGB or not, bit 0 tells us if it's GBA or not
+    ;so the states would be %00 == DMG, %10 == CGB, %11 == AGB, %01 == weird DMG variant (but still DMG)
+
+    ;if you got a better way to write this, i'd love to see because honestly that looks ugly af
+    ld a, d
+    and a, %00000010
+    ld d, a
+    ld a, b
+    and a, %00000001
+    or a, d
+
+    ;storing the data up in the variable declared above
+    ld [consoleCode], a
+
+    ;now that we finished using values that are stored in registers (sensitive data)
+    ;we might wanna disable stuff that's currently running
+    ;like audio, or video (since we don't control what they do)
+
+    ;equivalent to ld a, 0
+    ;xor a, a takes 1 byte instead of 2
+    ;it also takes 1 cpu cycle instead of 2
+    ;therefore to load 0 into a, xoring it with itself is faster and smaller
+    xor a, a
+    ;disable audio
+    ld [rAUDENA], a
+    ;disable all interrupts for now
+    ld [rIE], a
+
+    ;disabling timer ticking
+    ld [rTAC], a
+    ;setting timer to 0
+    ld [rTIMA], a
+    ;setting timer modulo to 0
+    ld [rTMA], a
+
+    ;JOYP cannot be initialized to 0, here we wanna make sure that the joypad is initialized to not
+    ;give joypad controls by default (for now, can be changed ofc lol)
+    ld a, JOYP_GET_NONE
+    ld [rJOYP], a
+
+    ;i'd like to disable and initialize rendering related stuff, the issue is
+    ;1. some registers affect rendering if the console is already rendering (i.e scrolling
+    ;we can disable the LCD to avoid this issue through the LCDC register but
+    ;2. disabling the LCD while the console is drawing can damage the LCD screen (and is forbidden as such
+    ;don't worry, emulators have features to detect when it happens)
+    ;therefore, we need to wait for the LCD screen to be in what we call VBlank, it's the part of the rendering process
+    ;when the LCD does not draw anything, once it has finished drawing the screen
+    ;a good and reliable way to check for it right now is using rLY, it's a register that tells us which scanline
+    ;(horizontal line of pixels) the console is currently drawing.
+    ;the console has a 160x144 pixel screen, that means the console has 144 scanlines, which also means
+    ;if the scanline is equal to or above 144, we're in vblank
+.VBlankWait:
+    ;143 - 144 = -1 (sets c flag, not z flag)
+    ;144 - 144 = 0 (sets z flag, not c flag)
+    ;145 - 144 = 1 (sets no flags)
+    ;therefore, we can just check if the carry flag is set, if it is, we loop
+    ld a, [rLY]
+    cp a, LY_VBLANK + 1 
+    jr c, .VBlankWait
+
+    ;the signal to turn off the LCD screen
+    ld a, LCDC_OFF
+    ld [rLCDC], a
+
+    ;now we can initialize a few things:
+
+    ;also this is technically redundant, LCDC_OFF alone is 0, but for clarity i left the instruction here
+    xor a, a
+    ;background scroll X
+    ld [rSCX], a
+    ;background scroll Y
+    ld [rSCY], a
+    ;status register (controls special interrupts mostly)
+    ;note: it's better to write to this register while interrupts are disabled
+    ;writing to this register triggers interrupts under a very wide range of conditions, which tend to usually be met
+    ld [rSTAT], a
+
+    ;window x position
+    ld [rWX], a
+    ;window y position
+    ld [rWY], a
+
+
+    ;TODO: create a function which is dedicated to writing to palettes
+    ;avoid having to write custom code everytime we want to write to palettes just to choose between DMG palettes and CGB ones
+    ld a, [consoleCode]
+    and a, %00000010
+    jr nz, .skipColor
+
+    ;this is for consoles without color (because those registers are available only for platforms that have no color 
+    ;(either in their mode, or all the time))
+
+    ;what palette means is that, there are 4 possible "colors" with non-color consoles
+    ;these are defined by 2 bits, 00 being the "lightest", and 11 being the "darkest"
+    ;you can assign those color indices to color IDs, which will in turn be the IDs used by tiles for backgrounds and sprites
+    ;(called OBJ or objects)
+
+    ;objects have 2 palettes, there's a control bit to choose between the 2 palettes in each sprite's parameters
+
+    ;background palette
+    ld [rBGP], a
+    ;object palette 0
+    ld [rOBP0], a
+    ;object palette 1
+    ld [rOBP1], a
+
+.skipColor:
+    ;clearing the interrupt flags register, those are flags that tell the cpu "hey, i'm requesting an interrupt"
+    ;clearing them means i discard the interrupts in question
+    ld a, %00000
+    ld [rIF], a
+
+    jp main
