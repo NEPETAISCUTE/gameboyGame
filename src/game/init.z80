@@ -1,10 +1,13 @@
+INCLUDE "hardware.inc"
+
 SECTION "Entry", ROM0[$100]
 entry_point:
     nop 
     jp init_game
 SECTION "Header", ROM0[$104]
 
-
+    ;initializes all the bytes in here to 0
+    ds $150 - @, 0
 
 SECTION "Init", ROM0
 init_game:

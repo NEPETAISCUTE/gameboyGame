@@ -24,11 +24,13 @@ endif
 MAKEFLAGS += --no-print-directory
 PROJ    := game
 TARGET  := build/$(PROJ).gb
-EXT     := gbz80
+EXT     := z80
 COMP    := rgbasm
 LINK    := rgblink
 PATCH   := rgbfix
 CONVERT := rgbgfx
+
+VERSION := 0
 
 # ========== Everything files related ==========
 
@@ -46,8 +48,8 @@ BPP_FILES := $(patsubst $(TILES_DIR)/%.png,$(TILES_DIR)/%.2bpp,$(PNG_FILES))
 
 # ========== Everything flags related ==========
 
-O_FLAGS     := -Wall -Wextra -i include -i assets
-PATCH_FLAGS := -v -p 0xFF
+O_FLAGS     := -Wall -Wextra -i include -i assets 
+PATCH_FLAGS := -v -p 0xFF -t TESTGAME -j -n $(VERSION)
 LINK_FLAGS  :=
 
 # =========== Every usable functions ===========
@@ -59,9 +61,10 @@ buildAll:
 	make $(TARGET)
 
 $(TARGET):$(OBJ_FILES)
+	@echo $(OBJ_FILES)
 	$(LINK) $^ -o $@ $(LINK_FLAGS) -n $(OBJ_DIR)/$(PROJ).sym -m $(OBJ_DIR)/$(PROJ).map
 #   "tkt soeurette je m'occupe du patch"
-	$(PATCH) $(PATCH_FLAGS) $(TARGET) 
+	$(PATCH) $(PATCH_FLAGS) $(TARGET)
 
 # O files compiling
 
