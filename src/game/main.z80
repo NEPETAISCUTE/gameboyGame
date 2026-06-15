@@ -1,0 +1,6 @@
+SECTION "Main", ROM0
+main::
+    ;stops cpu execution until a new interrupt request occurs, it's more power efficient than just jumping back at main
+    ;saves battery
+    halt
+    jp main
