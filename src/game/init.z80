@@ -88,21 +88,24 @@ init_game:
     ;therefore to load 0 into a, xoring it with itself is faster and smaller
     xor a, a
     ;disable audio
-    ld [rAUDENA], a
+    ;note: ldh is a faster and smaller version of ld, that's restricted to addresses from $FF00 to $FFFF
+    ;all memory mapped registers that belong to the console are in the lower part of that range (except for rIE which is $FFFF)
+    ;so you can have faster and smaller writes to all of the console's memory mapped registers
+    ldh [rAUDENA], a
     ;disable all interrupts for now
-    ld [rIE], a
+    ldh [rIE], a
 
     ;disabling timer ticking
-    ld [rTAC], a
+    ldh [rTAC], a
     ;setting timer to 0
-    ld [rTIMA], a
+    ldh [rTIMA], a
     ;setting timer modulo to 0
-    ld [rTMA], a
+    ldh [rTMA], a
 
     ;JOYP cannot be initialized to 0, here we wanna make sure that the joypad is initialized to not
     ;give joypad controls by default (for now, can be changed ofc lol)
     ld a, JOYP_GET_NONE
-    ld [rJOYP], a
+    ldh [rJOYP], a
 
     ;i'd like to disable and initialize rendering related stuff, the issue is
     ;1. some registers affect rendering if the console is already rendering (i.e scrolling
@@ -120,36 +123,36 @@ init_game:
     ;144 - 144 = 0 (sets z flag, not c flag)
     ;145 - 144 = 1 (sets no flags)
     ;therefore, we can just check if the carry flag is set, if it is, we loop
-    ld a, [rLY]
+    ldh a, [rLY]
     cp a, LY_VBLANK + 1 
     jr c, .VBlankWait
 
     ;the signal to turn off the LCD screen
     ld a, LCDC_OFF
-    ld [rLCDC], a
+    ldh [rLCDC], a
 
     ;now we can initialize a few things:
 
     ;also this is technically redundant, LCDC_OFF alone is 0, but for clarity i left the instruction here
     xor a, a
     ;background scroll X
-    ld [rSCX], a
+    ldh [rSCX], a
     ;background scroll Y
-    ld [rSCY], a
+    ldh [rSCY], a
     ;status register (controls special interrupts mostly)
     ;note: it's better to write to this register while interrupts are disabled
     ;writing to this register triggers interrupts under a very wide range of conditions, which tend to usually be met
-    ld [rSTAT], a
+    ldh [rSTAT], a
 
     ;window x position
-    ld [rWX], a
+    ldh [rWX], a
     ;window y position
-    ld [rWY], a
+    ldh [rWY], a
 
 
     ;TODO: create a function which is dedicated to writing to palettes
     ;avoid having to write custom code everytime we want to write to palettes just to choose between DMG palettes and CGB ones
-    ld a, [consoleCode]
+    ldh a, [consoleCode]
     and a, %00000010
     jr nz, .skipColor
 
@@ -164,16 +167,16 @@ init_game:
     ;objects have 2 palettes, there's a control bit to choose between the 2 palettes in each sprite's parameters
 
     ;background palette
-    ld [rBGP], a
+    ldh [rBGP], a
     ;object palette 0
-    ld [rOBP0], a
+    ldh [rOBP0], a
     ;object palette 1
-    ld [rOBP1], a
+    ldh [rOBP1], a
 
 .skipColor:
     ;clearing the interrupt flags register, those are flags that tell the cpu "hey, i'm requesting an interrupt"
     ;clearing them means i discard the interrupts in question
     ld a, %00000
-    ld [rIF], a
+    ldh [rIF], a
 
     jp main
