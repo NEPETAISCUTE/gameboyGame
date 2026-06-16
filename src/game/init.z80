@@ -144,6 +144,7 @@ init_game:
     ;avoid having to write custom code everytime we want to write to palettes just to choose between DMG palettes and CGB ones
     ld a, [consoleCode]
     and a, %00000010
+    ;if it's a GBC, all palettes are initialized to all white, so it's the equivalent of loading %00000000 to palette regs
     jr nz, .skipColor
 
     ;this is for consoles without color (because those registers are available only for platforms that have no color 
