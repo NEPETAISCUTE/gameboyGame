@@ -118,18 +118,8 @@ init_game:
     ;(horizontal line of pixels) the console is currently drawing.
     ;the console has a 160x144 pixel screen, that means the console has 144 scanlines, which also means
     ;if the scanline is equal to or above 144, we're in vblank
-.VBlankWait:
-    ;143 - 144 = -1 (sets c flag, not z flag)
-    ;144 - 144 = 0 (sets z flag, not c flag)
-    ;145 - 144 = 1 (sets no flags)
-    ;therefore, we can just check if the carry flag is set, if it is, we loop
-    ldh a, [rLY]
-    cp a, LY_VBLANK + 1 
-    jr c, .VBlankWait
-
-    ;the signal to turn off the LCD screen
-    ld a, LCDC_OFF
-    ldh [rLCDC], a
+    ;code for the function is in src/util/video.z80
+    call LCDOff
 
     ;now we can initialize a few things:
 
@@ -152,7 +142,7 @@ init_game:
 
     ;TODO: create a function which is dedicated to writing to palettes
     ;avoid having to write custom code everytime we want to write to palettes just to choose between DMG palettes and CGB ones
-    ldh a, [consoleCode]
+    ld a, [consoleCode]
     and a, %00000010
     jr nz, .skipColor
 
