@@ -1,0 +1,44 @@
+INCLUDE "hardware.inc"
+
+SECTION "Memory Utils", ROM0
+
+;TODO: implement memory utils like memset or memcpy
+
+;== memset ==
+;args:
+;d = value
+;hl = destination
+;bc = size
+
+;trashes a and hl
+;bc = 0 at return
+memset::
+    ;our loop is here
+        ld a, d
+        ld [hli], a
+
+        dec bc
+        ld a, b
+        or a, c
+        jr nz, memset
+
+    ret
+
+;== memcpy ==
+;hl = destination
+;de = source
+;bc = size
+
+memcpy::
+    ;our loop is here
+        ld a, [de]
+        inc de
+        
+        ld [hli], a
+
+        dec bc
+        ld a, b
+        or a, c
+        jr nz, memcpy
+    
+    ret
