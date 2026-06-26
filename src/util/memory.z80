@@ -6,22 +6,26 @@ SECTION "Memory Utils", ROM0
 
 ;== memset ==
 ;args:
-;d = value
 ;hl = destination
+;d = value
 ;bc = size
 
 ;trashes a and hl
 ;bc = 0 at return
 memset::
     ;our loop is here
-        ld a, d
-        ld [hli], a
-
-        dec bc
+        ;compare first, that way sizes of 0 don't do anything weird like setting $10000 bytes lol
         ld a, b
         or a, c
-        jr nz, memset
+        jr z, .end
 
+        ld a, d
+        ld [hli], a
+        
+        dec bc
+        jr memset
+        
+.end:
     ret
 
 ;== memcpy ==
@@ -31,14 +35,17 @@ memset::
 
 memcpy::
     ;our loop is here
+        ;same as memset, but for copying instead ig
+        ld a, b
+        or a, c
+        jr z, .end
+
         ld a, [de]
         inc de
         
         ld [hli], a
 
         dec bc
-        ld a, b
-        or a, c
-        jr nz, memcpy
-    
+        jr memcpy
+.end:
     ret
