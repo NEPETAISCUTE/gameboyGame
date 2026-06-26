@@ -51,6 +51,7 @@ BPP_FILES := $(patsubst $(TILES_DIR)/%.png,$(TILES_DIR)/%.2bpp,$(PNG_FILES))
 O_FLAGS     := -Wall -Wextra -i include -i assets 
 PATCH_FLAGS := -v -p 0xFF -t TESTGAME -j -n $(VERSION)
 LINK_FLAGS  :=
+CONVERT_FLAGS := -u
 
 # =========== Every usable functions ===========
 
@@ -76,7 +77,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.$(EXT)
 
 convertTiles: $(BPP_FILES)
 $(TILES_DIR)/%.2bpp: $(TILES_DIR)/%.png
-	$(CONVERT) $< -o $@
+	$(CONVERT) $(CONVERT_FLAGS) $< -o $@
 
 run: $(TARGET)
 	sameboy $(TARGET)
