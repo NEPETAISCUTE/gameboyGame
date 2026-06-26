@@ -156,6 +156,7 @@ init_game:
     ;(called OBJ or objects)
 
     ;objects have 2 palettes, there's a control bit to choose between the 2 palettes in each sprite's parameters
+    ld a, %11100100
 
     ;background palette
     ldh [rBGP], a
@@ -165,9 +166,40 @@ init_game:
     ldh [rOBP1], a
 
 .skipColor:
+    ;now we're gonna copy the tileset data to vram
+    ld hl, $8000 ;dest
+    ld de, defaultTiles ;src
+    ld bc, DEFAULT_TILES_SIZE ;size
+    call memcpy
+
+    ;and clear the tile map so when we turn on display, there's no leftovers of the nintendo logo or something like that
+    ld hl, $9800 ;dest
+    ld d, $00 ;value
+    ld bc, $800 ;size
+    call memset
+
+    ld hl, $9800
+    ld a, $00
+    ld [hli], a
+    inc a
+    ld [hli], a
+    inc a
+    ld [hli], a
+    inc a
+    ld [hli], a
+
     ;clearing the interrupt flags register, those are flags that tell the cpu "hey, i'm requesting an interrupt"
     ;clearing them means i discard the interrupts in question
     ld a, %00000
     ldh [rIF], a
 
+    ld a, LCDC_ON | LCDC_BG_ON | LCDC_BLOCK01 ;just those 2 for testing
+    ld [rLCDC], a
+
     jp main
+
+SECTION "Default Tile Set", ROM0
+defaultTiles:
+INCBIN "bg.2bpp"
+.end:
+DEF DEFAULT_TILES_SIZE EQU defaultTiles.end - defaultTiles
