@@ -1,0 +1,21 @@
+SECTION "VBlankIntHandler", ROM0[$40]
+VBlankHandler:
+    ;TODO: add frame update code
+    ;TODO: add audio update code
+    reti
+
+SECTION "STATIntHandler", ROM0[$48]
+STATHandler:
+    reti
+
+SECTION "TimerIntHandler", ROM0[$50]
+TimerHandler:
+    reti
+
+SECTION "SerialIntHandler", ROM0[$58]
+SerialHandler:
+    reti
+
+SECTION "JoypadIntHandler", ROM0[$60]
+JoypadHandler:
+    reti
