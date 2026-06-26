@@ -188,13 +188,18 @@ init_game:
     inc a
     ld [hli], a
 
+    ld a, LCDC_ON | LCDC_BG_ON | LCDC_BLOCK01 ;just those 3 for testing
+    ldh [rLCDC], a
+
     ;clearing the interrupt flags register, those are flags that tell the cpu "hey, i'm requesting an interrupt"
     ;clearing them means i discard the interrupts in question
     ld a, %00000
     ldh [rIF], a
 
-    ld a, LCDC_ON | LCDC_BG_ON | LCDC_BLOCK01 ;just those 2 for testing
-    ld [rLCDC], a
+    ;enabling VBlank interrupt, so we actually get interrupt handling, that way if i wanna toy with audio i can
+    ld a, %00001
+    ldh [rIE], a
+    ei
 
     jp main
 
