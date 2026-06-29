@@ -2,8 +2,16 @@ INCLUDE "hardware.inc"
 
 SECTION "Video Utils", ROM0
 
+;trashes a and flags
+;warning: this function wastes a whole scanline of rendering
+;do not use for screen effects like parallax
+;please favour STAT interrupts instead, which are way better at that job
 HBlankWait::
-    ;TODO: implement
+    ld a, [rSTAT]
+    and a, %11 ;the 2 first bits of rSTAT give the PPU mode, we mask out the rest
+    cp a, 0 ;mode 0 = hblank
+    jr nz, HBlankWait
+    ; now that we're in hblank, we can return
     ret
 
 VBlankWait::
@@ -14,6 +22,56 @@ VBlankWait::
     ldh a, [rLY]
     cp a, LY_VBLANK + 1 
     jr c, VBlankWait
+    ret
+
+;a: direction
+;hl: dest
+;de: src
+;bc: size
+;tilemapCopy::
+;    push a
+;    ld a, [hl]
+;    ld [de], a
+    ;TODO: finish it up
+
+;hl: dest
+;d: value
+;bc: size
+;e: direction (0: left to right then up to down, 1: up to down, goes out of memory if it exceeds $9800, be careful)
+tilemapSet::
+        ld a, d
+        ld [hl], a
+        dec bc
+        ld a, c
+        or a, b
+        jr z, .end
+
+        ld a, e
+        and a, a
+        jr nz, .increment32
+
+    ;increment1
+        inc hl
+        jr .continue
+
+    .increment32:
+        ld a, 32
+        add a, l
+        ld l, a
+
+        ld a, 0
+        adc a, h
+        ld h, a
+    .continue:
+        jr tilemapSet
+.end:
+    ret
+    
+
+tilemapSwap::
+    ldh a, [rLCDC]
+    xor a, LCDC_BG_9C00
+    ldh [rLCDC], a
     ret
 
 LCDOff::
