@@ -1,21 +1,30 @@
-SECTION "VBlankIntHandler", ROM0[$40]
-VBlankHandler:
-    ;TODO: add frame update code
-    ;TODO: add audio update code
+INCLUDE "hardware.inc"
+
+SECTION "VBlankStage", ROM0[$40]
+VBlankStage:
+    call VBlankHandler
     reti
 
-SECTION "STATIntHandler", ROM0[$48]
+SECTION "VBlankIntHandler", ROM0
+VBlankHandler:
+    reti
+
+SECTION "STATStage", ROM0[$48]
 STATHandler:
     reti
 
-SECTION "TimerIntHandler", ROM0[$50]
+SECTION "STATIntHandler", ROM0
+STATHandler:
+    reti
+
+SECTION "TimerStage", ROM0[$50]
 TimerHandler:
     reti
 
-SECTION "SerialIntHandler", ROM0[$58]
+SECTION "SerialStage", ROM0[$58]
 SerialHandler:
     reti
 
-SECTION "JoypadIntHandler", ROM0[$60]
+SECTION "JoypadStage", ROM0[$60]
 JoypadHandler:
     reti
